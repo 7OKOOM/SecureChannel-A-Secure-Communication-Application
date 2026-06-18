@@ -1,0 +1,20 @@
+# --- Python Specific ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# --- IDE Settings (PyCharm/IntelliJ) ---
+.idea/
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+
+# --- Logs and Temp ---
+*.log
+*.tmp
