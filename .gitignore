@@ -18,3 +18,4 @@ Thumbs.db
 # --- Logs and Temp ---
 *.log
 *.tmp
+config.py
