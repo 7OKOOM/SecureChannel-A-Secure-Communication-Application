@@ -113,3 +113,4 @@ class ChaCha20Poly1305:
         tag = Poly1305(poly_key).mac(mac_data)
 
         return ciphertext, tag
+#hakam
