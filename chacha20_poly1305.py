@@ -67,8 +67,7 @@ class ChaCha20:
 
 
 class Poly1305:
-    """Poly1305 one-time MAC (RFC 8439, section 2.5)."""
-
+   
     def __init__(self, key):
         assert len(key) == 32
         self.r = int.from_bytes(key[:16], byteorder='little') & 0x0FFFFFFC0FFFFFFC0FFFFFFC0FFFFFFF
