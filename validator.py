@@ -2,7 +2,7 @@ from hdkf import HKDF
 from hmac import HMAC
 
 from sha256 import SHA256
-from chacha20_poly1305_AEAD import ChaCha20Poly1305
+from chacha20_poly1305_AEAD import ChaCha20Poly1305, ChaCha20, Poly1305
 def p(input_data,is_pass):
     if is_pass:
         print(f"PASS: {input_data[:10]}...")
@@ -34,6 +34,50 @@ def validate_vectors_chacha20_poly1305():
 #validate_vectors_chacha20_poly1305()
 
 
+def validate_vectors_chacha20():
+    # vector taken from the following link
+    # https://datatracker.ietf.org/doc/html/rfc8439#section-2.4.2
+    test_cases = [
+        (
+            bytes.fromhex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"),
+            bytes.fromhex("000000000000004a00000000"),
+            1,
+            b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.",
+            "6e2e359a2568f98041ba0728dd0d6981"
+            "e97e7aec1d4360c20a27afccfd9fae0b"
+            "f91b65c5524733ab8f593dabcd62b357"
+            "1639d624e65152ab8f530c359f0861d8"
+            "07ca0dbf500d6a6156a38e088a22b65e"
+            "52bc514d16ccf806818ce91ab7793736"
+            "5af90bbf74a35be6b40b8eedf2785e42"
+            "874d",
+        ),
+    ]
+    print("Validating ChaCha20")
+    for key, nonce, counter, plaintext, expected_ct in test_cases:
+        cipher = ChaCha20(key, nonce)
+        ciphertext = cipher.encrypt(plaintext, counter)
+        p(plaintext, ciphertext.hex() == expected_ct)
+#validate_vectors_chacha20()
+
+
+def validate_vectors_poly1305():
+    # vector taken from the following link
+    # https://datatracker.ietf.org/doc/html/rfc8439#section-2.5.2
+    test_cases = [
+        (
+            bytes.fromhex("85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b"),
+            b"Cryptographic Forum Research Group",
+            "a8061dc1305136c6c22b8baf0c0127a9",
+        ),
+    ]
+    print("Validating Poly1305")
+    for key, message, expected_tag in test_cases:
+        mac = Poly1305(key)
+        tag = mac.mac(message)
+        p(message, tag.hex() == expected_tag)
+#validate_vectors_poly1305()
+
 
 def validate_vectors_sh256():
 
@@ -51,7 +95,7 @@ def validate_vectors_sh256():
     for input_data, expected in test_cases:
         result = hasher.hash(input_data).hex()
         p(input_data,result == expected)
-# validate_vectors_sh256()
+#validate_vectors_sh256()
 
 
 def validate_vectors_hmac():
@@ -72,7 +116,7 @@ def validate_vectors_hmac():
     for key, input_data, expected in test_cases:
         result = mac.hmac(key,input_data).hex()
         p(input_data,result == expected)
-# validate_vectors_hmac()
+#validate_vectors_hmac()
 
 def validate_vectors_hdkf():
 
@@ -88,5 +132,5 @@ def validate_vectors_hdkf():
     hkdf = HKDF()
     for salt, ikm, info,length,expected in test_cases:
         result = hkdf.hkdf(salt,ikm,info,length).hex()
-        p(info,result == expected)
-validate_vectors_hdkf()
+        print(info, result == expected)
+#validate_vectors_hdkf()
