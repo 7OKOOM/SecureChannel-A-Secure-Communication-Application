@@ -1,6 +1,6 @@
 from hdkf import HKDF
 from hmac import HMAC
-
+from X25519 import X25519
 from sha256 import SHA256
 from chacha20_poly1305_AEAD import ChaCha20Poly1305, ChaCha20, Poly1305
 def p(input_data,is_pass):
@@ -134,3 +134,26 @@ def validate_vectors_hdkf():
         result = hkdf.hkdf(salt,ikm,info,length).hex()
         print(info, result == expected)
 #validate_vectors_hdkf()
+
+def validate_vectors_x25519():
+    # vectors taken from the following link
+    # https://datatracker.ietf.org/doc/html/rfc7748#section-6.1
+    test_cases = [
+        (
+            bytes.fromhex("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a"),
+            bytes.fromhex("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f"),
+            bytes.fromhex("4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742"),
+        ),
+        (
+            bytes.fromhex("5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb"),
+            bytes.fromhex("8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a"),
+            bytes.fromhex("4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742"),
+        ),
+    ]
+    print("Validating X25519")
+    x25519 = X25519()
+    for private_key, public_key, expected in test_cases:
+        result = x25519.compute_shared_secret(private_key, public_key)
+        p(private_key, result == expected)
+
+#validate_vectors_x25519()      
