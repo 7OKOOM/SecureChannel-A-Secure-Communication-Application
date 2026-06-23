@@ -132,7 +132,7 @@ def validate_vectors_hdkf():
     hkdf = HKDF()
     for salt, ikm, info,length,expected in test_cases:
         result = hkdf.hkdf(salt,ikm,info,length).hex()
-        print(info, result == expected)
+        p(info, result == expected)
 #validate_vectors_hdkf()
 
 def validate_vectors_x25519():
