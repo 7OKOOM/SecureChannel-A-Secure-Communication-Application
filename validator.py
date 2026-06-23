@@ -1,6 +1,5 @@
 from hdkf import HKDF
 from hmac import HMAC
-from X25519 import X25519
 from sha256 import SHA256
 from chacha20_poly1305_AEAD import ChaCha20Poly1305, ChaCha20, Poly1305
 def p(input_data,is_pass):
