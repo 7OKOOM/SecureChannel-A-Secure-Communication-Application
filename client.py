@@ -52,7 +52,7 @@ def run_client(host='127.0.0.1', port=65432):
         nonce_server_to_client = key[64:76]
         nonce_client_to_server = key[76:]
 
-        channel = SecureChannel(s,key_client_to_server,key_server_to_client,nonce_client_to_server,nonce_client_to_server,PROTOCOL_VERSION)
+        channel = SecureChannel(s,key_client_to_server,key_server_to_client,nonce_client_to_server,nonce_server_to_client,PROTOCOL_VERSION)
         channel.send_message(1,b"Wadee is the goat",client_id)
         channel.send_message(2,b"exiting",client_id)
         s.close()
