@@ -30,7 +30,7 @@ def validate_vectors_chacha20_poly1305():
         ciphertext, tag = cipher.encrypt(nonce, plaintext, aad)
         p(plaintext,ciphertext.hex() == expected_ct and tag.hex() == expected_tag)
 
-#validate_vectors_chacha20_poly1305()
+validate_vectors_chacha20_poly1305()
 
 
 def validate_vectors_chacha20():

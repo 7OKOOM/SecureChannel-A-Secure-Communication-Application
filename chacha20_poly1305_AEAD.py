@@ -73,10 +73,6 @@ class Poly1305:
         self.r = int.from_bytes(key[:16], byteorder='little') & 0x0FFFFFFC0FFFFFFC0FFFFFFC0FFFFFFF
         self.s = int.from_bytes(key[16:], byteorder='little')
 
-    @staticmethod
-    def pad16(data):
-        padding_length = (16 - (len(data) % 16)) % 16
-        return b'\x00' * padding_length
 
     def mac(self, message):
         p = 2 ** 130 - 5
@@ -90,7 +86,9 @@ class Poly1305:
 
 
 class ChaCha20Poly1305:
-   
+    def pad16(self,data):
+        padding_length = (16 - (len(data) % 16)) % 16
+        return b'\x00' * padding_length
     def __init__(self, key):
         assert len(key) == 32
         self.key = key
@@ -104,13 +102,35 @@ class ChaCha20Poly1305:
 
         mac_data = bytearray()
         mac_data += associated_data
-        mac_data += Poly1305.pad16(associated_data)
+        mac_data += self.pad16(associated_data)
         mac_data += ciphertext
-        mac_data += Poly1305.pad16(ciphertext)
+        mac_data += self.pad16(ciphertext)
         mac_data += struct.pack('<Q', len(associated_data))
         mac_data += struct.pack('<Q', len(ciphertext))
 
         tag = Poly1305(poly_key).mac(mac_data)
 
         return ciphertext, tag
+
+    def decrypt(self, nonce, ciphertext, tag, aad):
+        cipher = ChaCha20(self.key, nonce)
+        poly_key = cipher.block(0)[:32]
+        mac_data = bytearray()
+        mac_data += aad
+        mac_data += self.pad16(aad)
+        mac_data += ciphertext
+        mac_data += self.pad16(ciphertext)
+        mac_data += struct.pack('<Q', len(aad))
+        mac_data += struct.pack('<Q', len(ciphertext))
+        tag_compare = Poly1305(poly_key).mac(mac_data)
+        if tag_compare != tag:
+            raise Exception('Decryption failed')
+        plaintext = cipher.encrypt(ciphertext, counter=1)
+        return plaintext
+
 #hakam
+
+## the both macs should be the same thing?
+##what we put in as info in HKDF
+##what is the protocol version,identities,will the nonce used from server to client be same as nonce in inverse
+##
