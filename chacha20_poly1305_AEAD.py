@@ -130,7 +130,17 @@ class ChaCha20Poly1305:
 
 #hakam
 
-## the both macs should be the same thing?
-##what we put in as info in HKDF
+
+##What Info we use in HKDF in client and server? is this protocol defined?
 ##what is the protocol version,identities,will the nonce used from server to client be same as nonce in inverse
-##
+##Should the MAC sent from server to client be same as one sent from client to server?
+##if they are different, in what way should we make them? for example
+# should we use this for client and server?:
+# mac_gen.hmac(Secret.PSK, b"client_auth"+PROTOCOL_VERSION + server_id+client_id + A + B) &&
+# mac_gen.hmac(Secret.PSK, b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B)
+# (if this was the right thing, how the server will know that the client used b"client_auth" and vice versa? is it protocol defined?)
+# or we should use this for client and server?:
+# mac_gen.hmac(Secret.PSK, +PROTOCOL_VERSION + client_id + A + B) &&
+# mac_gen.hmac(Secret.PSK, +PROTOCOL_VERSION + server_id+A + B)
+##what is the transcript? should the transcript used by both parties be the same?
+

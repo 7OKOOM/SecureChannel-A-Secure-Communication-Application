@@ -1,3 +1,4 @@
+from X25519 import X25519
 from hdkf import HKDF
 from hmac import HMAC
 from sha256 import SHA256

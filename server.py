@@ -3,13 +3,27 @@ import socket
 
 from hdkf import HKDF
 from hmac import HMAC
-
+import threading
 from X25519 import X25519
 from secret import Secret
 from secure_channel import SecureChannel
 
 PROTOCOL_VERSION = b"\x00\x01"
 server_id        = b"server"
+
+def receiver(sock, channel: SecureChannel, client_id):
+    while not sock._closed:
+        msg_type,plaintext,sender_id = channel.receive_message()
+        if sender_id != client_id:
+            print("Error")
+            break
+            ## this is only for error in code if exists, since the tag is blinded with the creation of MAC, if the id is different it will return an error
+        print("HIM: "+plaintext.decode())
+        if msg_type ==2:
+            print("closing Connection")
+            sock.close()
+            return
+
 
 def run_server(host='127.0.0.1', port=65432):
     # Create a TCP socket
@@ -43,7 +57,7 @@ def run_server(host='127.0.0.1', port=65432):
                 print("Client hasn't been authenticated. Closing connection.")
                 conn.close()
                 return
-            print("mac received correctly!")
+            print("Client Authenticated")
             mixer = HKDF()
             conn.sendall(mac_gen.hmac(Secret.PSK, b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
 
@@ -53,25 +67,31 @@ def run_server(host='127.0.0.1', port=65432):
             key_client_to_server = key[32:64]
             nonce_server_to_client = key[64:76]
             nonce_client_to_server = key[76:]
-
             channel = SecureChannel(conn,key_server_to_client,key_client_to_server,nonce_server_to_client,nonce_client_to_server,PROTOCOL_VERSION)
+            t = threading.Thread(target=receiver, args=(conn, channel, client_id))
+            t.start()
+            while not conn._closed:
+                message= input()
+                if not conn._closed: channel.send_message(1,message.encode(),server_id)
+
+                # try:
+                #     type = int(input("What Action do you want?\n1.Send a message\n2.quit\n"))
+                #     if  type ==1:
+                #         message= input("Insert your message: ")
+                #         if not conn._closed: channel.send_message(1,message.encode(),server_id)
+                #         else:
+                #             print("channel has been closed. closing connection.")
+                #             return
+                #     elif type ==2:
+                #         channel.send_message(2,b"",server_id)
+                #         if not conn._closed: conn.close()
+                #         return
+                #     else:
+                #         print("Invalid input.")
+                # except:
+                #     print("Invalid input.")
 
 
 
-            # PHASE B: Secure Messaging (ChaCha20-Poly1305)
-            while True:
-                message =channel.receive_message()
-                msg_type = message[0]
-                plaintext = message[1]
-                sender_id = message[2]
-                if sender_id != client_id:
-                    print("Error")
-                    break
-                    ## this is only for error in code if exists, since the tag is blinded with the creation of MAC, if the id is different it will return an error
-                print(f"Received (encrypted): {plaintext}")
-                if msg_type ==2:
-                    print("closing Connection")
-                    conn.close()
-                    return
 if __name__ == "__main__":
     run_server()
