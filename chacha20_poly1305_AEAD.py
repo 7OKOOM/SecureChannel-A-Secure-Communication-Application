@@ -124,7 +124,7 @@ class ChaCha20Poly1305:
         mac_data += struct.pack('<Q', len(ciphertext))
         tag_compare = Poly1305(poly_key).mac(mac_data)
         if tag_compare != tag:
-            raise Exception('Decryption failed')
+            raise Exception('Decryption failed, message is tampered')
         plaintext = cipher.encrypt(ciphertext, counter=1)
         return plaintext
 

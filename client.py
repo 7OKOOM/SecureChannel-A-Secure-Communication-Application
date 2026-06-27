@@ -13,17 +13,13 @@ from secure_channel import SecureChannel
 PROTOCOL_VERSION = b"\x00\x01"
 client_id        = b"client"
 
-def worker(sock, channel: SecureChannel, server_id):
-    while not sock._closed:
-        msg_type,plaintext,sender_id = channel.receive_message()
-        if sender_id != server_id:
-            print("Error")
-            break
-            ## this is only for error in code if exists, since the tag is blinded with the creation of MAC, if the id is different it will return an error
+def worker(channel: SecureChannel):
+    while not channel.closed:
+        msg_type,plaintext = channel.receive_message()
         print("HIM: "+plaintext.decode())
         if msg_type ==2:
             print("closing Connection")
-            sock.close()
+            channel.close()
             return
 def run_client(host='127.0.0.1', port=65432):
     # Create a TCP socket
@@ -45,11 +41,11 @@ def run_client(host='127.0.0.1', port=65432):
         server_id_length = int.from_bytes(message[34:35], byteorder='little')
         server_id = message[35:35+server_id_length]
         shared_secret = exchanger.compute_shared_secret(private_key,A)
-        mac_gen = HMAC()
-        s.sendall(mac_gen.hmac(Secret.PSK, b"client_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
+        mac_gen = HMAC(Secret.PSK)
+        s.sendall(mac_gen.hmac(b"client_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
 
         mac_rcv = s.recv(32)
-        if mac_rcv != mac_gen.hmac(Secret.PSK, b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B):
+        if mac_rcv != mac_gen.hmac( b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B):
             print("Server hasn't been authenticated. Closing connection.")
             s.close()
             return
@@ -62,12 +58,12 @@ def run_client(host='127.0.0.1', port=65432):
         nonce_server_to_client = key[64:76]
         nonce_client_to_server = key[76:]
 
-        channel = SecureChannel(s,key_client_to_server,key_server_to_client,nonce_client_to_server,nonce_server_to_client,PROTOCOL_VERSION)
-        t = threading.Thread(target=worker, args=(s,channel, server_id))
+        channel = SecureChannel(s,key_client_to_server,key_server_to_client,nonce_client_to_server,nonce_server_to_client,PROTOCOL_VERSION,client_id)
+        t = threading.Thread(target=worker, args=(channel,))
         t.start()
-        while not s._closed:
+        while not channel.closed:
             message= input()
-            if not s._closed: channel.send_message(1,message.encode(),client_id)
+            if not channel.closed: channel.send_message(1,message.encode())
 
 
             # try:

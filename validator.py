@@ -112,9 +112,9 @@ def validate_vectors_hmac():
         (b"\xaa" * 131, b"This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.", "9b09ffa71b942fcb27635fbcd5b0e944bfdc63644f0713938a7f51535c3a35e2")
     ]
     print("Validating HMAC")
-    mac = HMAC()
     for key, input_data, expected in test_cases:
-        result = mac.hmac(key,input_data).hex()
+        mac = HMAC(key)
+        result = mac.hmac(input_data).hex()
         p(input_data,result == expected)
 #validate_vectors_hmac()
 

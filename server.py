@@ -11,19 +11,14 @@ from secure_channel import SecureChannel
 PROTOCOL_VERSION = b"\x00\x01"
 server_id        = b"server"
 
-def receiver(sock, channel: SecureChannel, client_id):
-    while not sock._closed:
-        msg_type,plaintext,sender_id = channel.receive_message()
-        if sender_id != client_id:
-            print("Error")
-            break
-            ## this is only for error in code if exists, since the tag is blinded with the creation of MAC, if the id is different it will return an error
+def receiver(channel: SecureChannel):
+    while not channel.closed:
+        msg_type,plaintext = channel.receive_message()
         print("HIM: "+plaintext.decode())
         if msg_type ==2:
             print("closing Connection")
-            sock.close()
+            channel.close()
             return
-
 
 def run_server(host='127.0.0.1', port=65432):
     # Create a TCP socket
@@ -51,15 +46,15 @@ def run_server(host='127.0.0.1', port=65432):
             A = exchanger.generate_public_key(private_key)
             conn.sendall(A + PROTOCOL_VERSION + int.to_bytes(len(server_id), byteorder='little') + server_id)
             ## first 32 bytes are the public key, second 2 bytes are the protocol version, 3rd 1 byte is the server_id identity length,4th thing is the identity itself
-            mac_gen = HMAC()
+            mac_gen = HMAC(Secret.PSK)
             mac_rcv = conn.recv(32)
-            if mac_rcv != mac_gen.hmac(Secret.PSK, b"client_auth"+PROTOCOL_VERSION + server_id+client_id + A + B):
+            if mac_rcv != mac_gen.hmac( b"client_auth"+PROTOCOL_VERSION + server_id+client_id + A + B):
                 print("Client hasn't been authenticated. Closing connection.")
                 conn.close()
                 return
             print("Client Authenticated")
             mixer = HKDF()
-            conn.sendall(mac_gen.hmac(Secret.PSK, b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
+            conn.sendall(mac_gen.hmac( b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
 
             key = mixer.hkdf(Secret.PSK,shared_secret,PROTOCOL_VERSION+b" PhaseB keys and nonces",88)
 
@@ -67,12 +62,12 @@ def run_server(host='127.0.0.1', port=65432):
             key_client_to_server = key[32:64]
             nonce_server_to_client = key[64:76]
             nonce_client_to_server = key[76:]
-            channel = SecureChannel(conn,key_server_to_client,key_client_to_server,nonce_server_to_client,nonce_client_to_server,PROTOCOL_VERSION)
-            t = threading.Thread(target=receiver, args=(conn, channel, client_id))
+            channel = SecureChannel(conn,key_server_to_client,key_client_to_server,nonce_server_to_client,nonce_client_to_server,PROTOCOL_VERSION,server_id)
+            t = threading.Thread(target=receiver, args=(channel,))
             t.start()
-            while not conn._closed:
+            while not channel.closed:
                 message= input()
-                if not conn._closed: channel.send_message(1,message.encode(),server_id)
+                if not channel.closed: channel.send_message(1,message.encode())
 
                 # try:
                 #     type = int(input("What Action do you want?\n1.Send a message\n2.quit\n"))
