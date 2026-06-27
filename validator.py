@@ -58,7 +58,7 @@ def validate_vectors_chacha20():
         cipher = ChaCha20(key, nonce)
         ciphertext = cipher.encrypt(plaintext, counter)
         p(plaintext, ciphertext.hex() == expected_ct)
-#validate_vectors_chacha20()
+validate_vectors_chacha20()
 
 
 def validate_vectors_poly1305():
@@ -76,7 +76,7 @@ def validate_vectors_poly1305():
         mac = Poly1305(key)
         tag = mac.mac(message)
         p(message, tag.hex() == expected_tag)
-#validate_vectors_poly1305()
+validate_vectors_poly1305()
 
 
 def validate_vectors_sh256():
@@ -95,7 +95,7 @@ def validate_vectors_sh256():
     for input_data, expected in test_cases:
         result = hasher.hash(input_data).hex()
         p(input_data,result == expected)
-#validate_vectors_sh256()
+validate_vectors_sh256()
 
 
 def validate_vectors_hmac():
@@ -116,7 +116,7 @@ def validate_vectors_hmac():
         mac = HMAC(key)
         result = mac.hmac(input_data).hex()
         p(input_data,result == expected)
-#validate_vectors_hmac()
+validate_vectors_hmac()
 
 def validate_vectors_hdkf():
 
@@ -133,7 +133,7 @@ def validate_vectors_hdkf():
     for salt, ikm, info,length,expected in test_cases:
         result = hkdf.hkdf(salt,ikm,info,length).hex()
         p(info, result == expected)
-#validate_vectors_hdkf()
+validate_vectors_hdkf()
 
 def validate_vectors_x25519():
     # vectors taken from the following link
@@ -156,4 +156,4 @@ def validate_vectors_x25519():
         result = x25519.compute_shared_secret(private_key, public_key)
         p(private_key, result == expected)
 
-#validate_vectors_x25519()      
+validate_vectors_x25519()
