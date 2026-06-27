@@ -35,15 +35,14 @@ SecureChannel/
 ├── secret.py                    # Loads the PSK from a local file (NOT committed)
 ├── sha256.py                    # SHA-256 (RFC 4634)
 ├── hmac.py                      # HMAC-SHA-256 (RFC 2104)
-├── hdkf.py                      # HKDF extract + expand (RFC 5869)
+├── hkdf.py                      # HKDF extract + expand (RFC 5869)
 ├── chacha20_poly1305_AEAD.py    # ChaCha20, Poly1305, AEAD (RFC 8439)
 ├── X25519.py                    # X25519 key exchange (RFC 7748)
 ├── secure_channel.py            # SecureChannel class (AEAD messaging)
 ├── general.py                   # Worker thread, channel factory, UI helpers
 ├── server.py                    # Server entry point
 ├── client.py                    # Client entry point
-└── report/
-    └── encs4320_report.pdf      # Project report
+└── encs4320_report.pdf          # Project report
 ```
 
 ---
@@ -64,27 +63,34 @@ The two parties authenticate each other using a long-term pre-shared key
 (PSK) that **must never be committed to the repository**. Generate it
 locally on each machine that will run the server or the client.
 
-### Option A — using Python
+### Step 1: Generate the `psk.bin` file
+
+Run the following command in your terminal inside the project root directory. This creates a file containing 32 raw, cryptographically secure random bytes:
 
 ```bash
-python -c "import os; print(os.urandom(32).hex())" > psk.hex
+python -c "import os; open('psk.bin', 'wb').write(os.urandom(32))"
 ```
 
-### Option B — using openssl
+### Step 2: How `secret.py` loads it
 
-```bash
-openssl rand -hex 32 > psk.hex
+The `secret.py` module reads the raw bytes directly from `psk.bin` at startup, safely bypassing any encoding artifacts, and exposes them dynamically:
+
+```python
+# secret.py
+try:
+    with open("psk.bin", "rb") as f:
+        class Secret:
+            PSK = f.read(32)
+except FileNotFoundError:
+    print("Error: psk.bin missing! Please run the generation script first.")
+    exit(1)
 ```
-
-Then place `psk.hex` in the project root (it is already in `.gitignore`).
-The `secret.py` module reads this file at startup and exposes the PSK as
-`Secret.PSK` (a 32-byte `bytes` object).
 
 > **Important:** Both the server and the client must use the **same** PSK.
 > Share it out of band (e.g., in person, via a secure messenger) — never
 > over the same network the chat will run on.
 
-The `.gitignore` file in this repository excludes `psk.hex`, `secret.py`
+The `.gitignore` file in this repository excludes `secret.py`
 (if it contains the literal key), and any other secret material. **Never
 commit a real PSK.**
 
@@ -160,7 +166,7 @@ PASS: b'\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd\xcd'...
 PASS: b'Test With '...
 PASS: b'Test Using'...
 PASS: b'This is a '...
-Validating HDKF
+Validating HKDF
 PASS: b'\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9'...
 PASS: b'\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9'...
 PASS: b''...
@@ -182,7 +188,7 @@ fixed before submission.
 |---------------------|---------------|-------------------------------|
 | SHA-256             | RFC 4634      | `sha256.py`                   |
 | HMAC-SHA-256        | RFC 2104      | `hmac.py`                     |
-| HKDF (extract+expand) | RFC 5869    | `hdkf.py`                     |
+| HKDF (extract+expand) | RFC 5869    | `hkdf.py`                     |
 | ChaCha20            | RFC 8439      | `chacha20_poly1305_AEAD.py`   |
 | Poly1305            | RFC 8439      | `chacha20_poly1305_AEAD.py`   |
 | ChaCha20-Poly1305 AEAD | RFC 8439   | `chacha20_poly1305_AEAD.py`   |

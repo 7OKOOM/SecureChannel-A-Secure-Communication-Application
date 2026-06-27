@@ -1,0 +1,19 @@
+# SecureChannel — Python dependencies
+#
+# This project uses ONLY the Python standard library. No third-party
+# packages are required, neither for the implementation nor for the
+# test suite.
+#
+# Standard-library modules used:
+#   - os        (random byte generation for keys/nonces)
+#   - socket    (TCP communication)
+#   - struct    (binary packing/unpacking of headers and frames)
+#   - threading (background receive loop)
+#
+# Required Python version: 3.8 or newer (tested on Python 3.14).
+#
+# Install with:
+#     pip install -r requirements.txt
+# (this is a no-op — there is nothing to install — but the file is
+# included to satisfy the repository-requirement checklist and to
+# make it explicit that the project has zero external dependencies.)
