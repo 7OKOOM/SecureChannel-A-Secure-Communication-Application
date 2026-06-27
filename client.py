@@ -1,26 +1,15 @@
 import socket
+import struct
 
-from chacha20_poly1305_AEAD import ChaCha20Poly1305
-from hdkf import HKDF
 from hmac import HMAC
 import threading
 from X25519 import X25519
 import os
 
 from secret import Secret
-from secure_channel import SecureChannel
-
-PROTOCOL_VERSION = b"\x00\x01"
+from general import worker, print_instructions, generate_channel
+PROTOCOL_VERSION = struct.pack(">H", 1)
 client_id        = b"client"
-
-def worker(channel: SecureChannel):
-    while not channel.closed:
-        msg_type,plaintext = channel.receive_message()
-        print("HIM: "+plaintext.decode())
-        if msg_type ==2:
-            print("closing Connection")
-            channel.close()
-            return
 def run_client(host='127.0.0.1', port=65432):
     # Create a TCP socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -50,40 +39,17 @@ def run_client(host='127.0.0.1', port=65432):
             s.close()
             return
         print("Server Authenticated")
-        mixer = HKDF()
-        key = mixer.hkdf(Secret.PSK,shared_secret,PROTOCOL_VERSION+b" PhaseB keys and nonces",88)
-
-        key_server_to_client = key[:32]
-        key_client_to_server = key[32:64]
-        nonce_server_to_client = key[64:76]
-        nonce_client_to_server = key[76:]
-
-        channel = SecureChannel(s,key_client_to_server,key_server_to_client,nonce_client_to_server,nonce_server_to_client,PROTOCOL_VERSION,client_id)
+        channel= generate_channel(Secret.PSK,shared_secret,PROTOCOL_VERSION,client_id,s,server_id)
         t = threading.Thread(target=worker, args=(channel,))
         t.start()
+        print_instructions()
         while not channel.closed:
             message= input()
-            if not channel.closed: channel.send_message(1,message.encode())
-
-
-            # try:
-            #     type = int(input("What Action do you want?\n1.Send a message\n2.quit\n"))
-            #     if  type ==1:
-            #         message= input("Insert your message: ")
-            #         if not s._closed: channel.send_message(1,message.encode(),client_id)
-            #         else:
-            #             print("channel has been closed. closing connection.")
-            #             return
-            #     elif type ==2:
-            #         channel.send_message(2,b"",client_id)
-            #         if not s._closed: s.close()
-            #         s.close()
-            #         return
-            #     else:
-            #         print("Invalid input.")
-            # except:
-            #     print("Invalid input.")
-
+            if message != ":eq":
+                if not channel.closed: channel.send_message(1,message.encode())
+            elif not channel.closed:
+                channel.send_message(2,b"")
+                channel.close()
 
 if __name__ == "__main__":
     run_client()

@@ -1,24 +1,15 @@
 import os
 import socket
+import struct
 
-from hdkf import HKDF
 from hmac import HMAC
 import threading
 from X25519 import X25519
 from secret import Secret
-from secure_channel import SecureChannel
+from general import worker, print_instructions, generate_channel
 
-PROTOCOL_VERSION = b"\x00\x01"
+PROTOCOL_VERSION = struct.pack(">H", 1)
 server_id        = b"server"
-
-def receiver(channel: SecureChannel):
-    while not channel.closed:
-        msg_type,plaintext = channel.receive_message()
-        print("HIM: "+plaintext.decode())
-        if msg_type ==2:
-            print("closing Connection")
-            channel.close()
-            return
 
 def run_server(host='127.0.0.1', port=65432):
     # Create a TCP socket
@@ -28,10 +19,9 @@ def run_server(host='127.0.0.1', port=65432):
         print(f"Server listening on {host}:{port}")
         exchanger = X25519()
         private_key = bytearray(os.urandom(32))
-
         conn, addr = s.accept()
         with conn:
-            # PHASE A: Handshake (Implement X25519 + HMAC Authentication)
+            # PHASE A: Handshake (X25519 + HMAC Authentication)
             print(f"Connected by {addr}")
             message = conn.recv(1024)
             version_client = message[32:34]
@@ -53,40 +43,18 @@ def run_server(host='127.0.0.1', port=65432):
                 conn.close()
                 return
             print("Client Authenticated")
-            mixer = HKDF()
             conn.sendall(mac_gen.hmac( b"server_auth"+PROTOCOL_VERSION + server_id+client_id + A + B))
-
-            key = mixer.hkdf(Secret.PSK,shared_secret,PROTOCOL_VERSION+b" PhaseB keys and nonces",88)
-
-            key_server_to_client = key[:32]
-            key_client_to_server = key[32:64]
-            nonce_server_to_client = key[64:76]
-            nonce_client_to_server = key[76:]
-            channel = SecureChannel(conn,key_server_to_client,key_client_to_server,nonce_server_to_client,nonce_client_to_server,PROTOCOL_VERSION,server_id)
-            t = threading.Thread(target=receiver, args=(channel,))
+            channel= generate_channel(Secret.PSK,shared_secret,PROTOCOL_VERSION,server_id,conn,server_id)
+            t = threading.Thread(target=worker, args=(channel,))
             t.start()
+            print_instructions()
             while not channel.closed:
                 message= input()
-                if not channel.closed: channel.send_message(1,message.encode())
-
-                # try:
-                #     type = int(input("What Action do you want?\n1.Send a message\n2.quit\n"))
-                #     if  type ==1:
-                #         message= input("Insert your message: ")
-                #         if not conn._closed: channel.send_message(1,message.encode(),server_id)
-                #         else:
-                #             print("channel has been closed. closing connection.")
-                #             return
-                #     elif type ==2:
-                #         channel.send_message(2,b"",server_id)
-                #         if not conn._closed: conn.close()
-                #         return
-                #     else:
-                #         print("Invalid input.")
-                # except:
-                #     print("Invalid input.")
-
-
+                if message != ":eq":
+                    if not channel.closed: channel.send_message(1,message.encode())
+                elif not channel.closed:
+                    channel.send_message(2,b"")
+                    channel.close()
 
 if __name__ == "__main__":
     run_server()
